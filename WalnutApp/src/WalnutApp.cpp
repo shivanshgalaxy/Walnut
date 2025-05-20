@@ -2,18 +2,52 @@
 #include "Walnut/EntryPoint.h"
 
 #include "Walnut/Image.h"
+#include "Walnut/Timer.h"
+#include "Renderer.h"
+
+using namespace Walnut;
 
 class ExampleLayer : public Walnut::Layer
 {
 public:
 	virtual void OnUIRender() override
 	{
-		ImGui::Begin("Hello");
-		ImGui::Button("Button");
+		ImGui::Begin("Settings");
+		ImGui::Text("Last render: %.3fms", m_LastRenderTime);
+		if (ImGui::Button("Render"))
+		{
+			Render();
+		};
 		ImGui::End();
 
-		ImGui::ShowDemoWindow();
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+		ImGui::Begin("Viewport");
+		m_ViewportWidth = ImGui::GetContentRegionAvail().x;
+		m_ViewportHeight = ImGui::GetContentRegionAvail().y;
+
+		auto image = m_Renderer.GetFinalImage();
+		if (image)
+			// Flip the UV coordinates to make the top-left correspond to 0, 1 and bottom-right to 1, 0
+			ImGui::Image(image->GetDescriptorSet(), {(float)image->GetWidth(), (float)image->GetHeight() },
+				ImVec2(0, 1), ImVec2(1, 0));
+		ImGui::End();
+		ImGui::PopStyleVar();
 	}
+
+	void Render()
+	{
+		Timer timer;
+
+		m_Renderer.OnResize(m_ViewportWidth, m_ViewportHeight);
+		m_Renderer.Render();
+
+		m_LastRenderTime = timer.ElapsedMillis();
+	}
+private:
+	Renderer m_Renderer;
+	uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
+	uint32_t* m_ImageData = nullptr;
+	float m_LastRenderTime = 0.0f;
 };
 
 Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
