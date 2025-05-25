@@ -1,7 +1,8 @@
 file(GLOB_RECURSE WalnutApp_SRC LIST_DIRECTORIES false src/*.cpp)
 
 add_executable(WalnutApp ${WalnutApp_SRC}
-        src/Ray.h)
+        src/Ray.h
+        src/Scene.h)
 target_include_directories(WalnutApp PRIVATE src)
 target_link_libraries(WalnutApp PRIVATE Walnut)
 

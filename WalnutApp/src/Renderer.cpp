@@ -37,18 +37,16 @@ void Renderer::OnResize(uint32_t width, uint32_t height)
     m_ImageData = new uint32_t[width * height];
 }
 
-void Renderer::Render(const Camera& camera)
+void Renderer::Render(const Scene& scene, const Camera& camera)
 {
-    Ray ray{};
-    ray.Origin = camera.GetPosition();
-
+    m_ActiveScene = &scene;
+    m_ActiveCamera = &camera;
     float aspectRatio = m_FinalImage->GetWidth() / (float)m_FinalImage->GetHeight();
     for (uint32_t y = 0; y < m_FinalImage->GetHeight(); y++)
     {
         for (uint32_t x = 0; x < m_FinalImage->GetWidth(); x++)
         {
-            ray.Direction = camera.GetRayDirections()[x + y * m_FinalImage->GetWidth()];
-            glm::vec4 color = TraceRay(ray);
+            glm::vec4 color = PerPixel(x, y);
             color = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
             m_ImageData[x + y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(color);
         }
@@ -56,57 +54,97 @@ void Renderer::Render(const Camera& camera)
     m_FinalImage->SetData(m_ImageData);
 }
 
-glm::vec4 Renderer::TraceRay(const Ray& ray)
+glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
 {
-    // uint8_t r = (uint8_t)(coord.x * 255.0f);
-    // uint8_t g = (uint8_t)(coord.y * 255.0f);
+    Ray ray;
+    ray.Origin = m_ActiveCamera->GetPosition();
+    ray.Direction = m_ActiveCamera->GetRayDirections()[x + y * m_FinalImage->GetWidth()];
+    Renderer::HitPayload payload = TraceRay(ray);
+    if (payload.HitDistance < 0.0f)
+        return glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
+    glm::vec3 lightDirection = glm::normalize(glm::vec3(-1, -1, -1));
+    float lightIntensity = glm::max(glm::dot(payload.WorldNormal, -lightDirection), 0.0f); // == cos(angle)
+
+    const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
+    glm::vec3 sphereColor = sphere.Albedo;
+    // sphereColor = normal * 0.5f + 0.5f;
+    sphereColor *= lightIntensity;
+    return glm::vec4(sphereColor, 1.0f);
+}
+
+Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
+{
     // +ve z axis values correspond to moving backwards
-    // glm::vec3 rayOrigin(0.0f, 0.0f, 1.0f);
-    // glm::vec3 rayDirection = { coord.x, coord.y, -1.0f };
-    float radius = 0.5f;
-    // rayDirection = glm::normalize(rayDirection);
-
     // (bx^2 + by^2)t^2 + (2(axbx + ayby))t + (ax^2 + ay^2 - r^2) = 0
     // ^ a coefficient    ^ b coefficient     ^ c coefficient
+    //
     // a = ray origin
     // b = ray direction
     // t = hit distance
     // r = sphere radius
 
+    if (m_ActiveScene->Spheres.size() == 0)
+        return Miss(ray);
 
-    // Calculating coefficient values
+    int closestSphere = -1;
+    float hitDistance = std::numeric_limits<float>::max();
+    for (size_t i = 0; i < m_ActiveScene->Spheres.size(); i++)
+    {
+        const Sphere& sphere = m_ActiveScene->Spheres[i];
+        // Calculating coefficient values
+        glm::vec3 origin = ray.Origin - sphere.Position;
+        // Equivalent to rayDirection.x * rayDirection.x + rayDirection.y + rayDirection.y + rayDirection.z + rayDirection.z
+        float a = glm::dot(ray.Direction, ray.Direction);
+        float b = 2.0f * glm::dot(origin, ray.Direction);
+        float c = glm::dot(origin, origin) - sphere.Radius * sphere.Radius;
 
-    // Equivalent to rayDirection.x * rayDirection.x + rayDirection.y + rayDirection.y + rayDirection.z + rayDirection.z
-    float a = glm::dot(ray.Direction, ray.Direction);
-    float b = 2.0f * glm::dot(ray.Origin, ray.Direction);
-    float c = glm::dot(ray.Origin, ray.Origin) - radius * radius;
+        // Quadratic equation discriminant
+        // b^2 - 4ac
 
-    // Quadratic equation discriminant
-    // b^2 - 4ac
-
-    float discriminant = b * b - 4.0f * a * c;
+        float discriminant = b * b - 4.0f * a * c;
 
 
-    if (discriminant < 0.0f)
-        return glm::vec4(0, 0, 0, 1);
+        if (discriminant < 0.0f)
+            continue;
 
-    // (-b +- sqrt(discriminant)) / 2a
-    float t0 = (-b + glm::sqrt(discriminant)) / (2.0f * a);
-    // assuming -b is positive, this will give the smaller (i.e. closer) value
-    float t1 = (-b - glm::sqrt(discriminant)) / (2.0f * a);
+        // (-b +- sqrt(discriminant)) / 2a
+        // float furthestT = (-b + glm::sqrt(discriminant)) / (2.0f * a); // currently unused
+        // assuming -b is positive, this will give the smaller (i.e. closer) value
+        float closestT = (-b - glm::sqrt(discriminant)) / (2.0f * a);
 
-    glm::vec3 h0 = ray.Origin + ray.Direction * t0;
+        if (closestT < hitDistance)
+        {
+            hitDistance = closestT;
+            closestSphere = (int)i;
+        }
+    }
+
+    if (closestSphere < 0)
+        return Miss(ray);
+
+    return ClosestHit(ray, hitDistance, closestSphere);
+}
+
+Renderer::HitPayload Renderer::ClosestHit(const Ray &ray, float hitDistance, int objectIndex)
+{
+    Renderer::HitPayload payload;
+    payload.HitDistance = hitDistance;
+    payload.ObjectIndex = objectIndex;
+    const Sphere& closestSphere = m_ActiveScene->Spheres[objectIndex];
     // the closer value, i.e. the 'hit point'
-    glm::vec3 h1 = ray.Origin + ray.Direction * t1;
-    glm::vec3 normal = glm::normalize(h1);
+    glm::vec3 origin = ray.Origin - closestSphere.Position;
+    payload.WorldPosition = origin + ray.Direction * hitDistance;
+    payload.WorldNormal = glm::normalize(payload.WorldPosition);
 
-    glm::vec3 lightDirection = glm::normalize(glm::vec3(-1, -1, -1));
+    payload.WorldPosition += closestSphere.Position;
 
-    float d = glm::max(glm::dot(normal, -lightDirection), 0.0f); // == cos(angle)
+    return payload;
+}
 
-    glm::vec3 sphereColor(0.596, 1, 0.360);
-    // sphereColor = normal * 0.5f + 0.5f;
-    sphereColor *= d;
-    return glm::vec4(sphereColor, 1.0f);
+Renderer::HitPayload Renderer::Miss(const Ray &ray)
+{
+    Renderer::HitPayload payload;
+    payload.HitDistance = -1.0f;
+    return payload;
 }
