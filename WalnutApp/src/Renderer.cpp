@@ -59,18 +59,36 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
     Ray ray;
     ray.Origin = m_ActiveCamera->GetPosition();
     ray.Direction = m_ActiveCamera->GetRayDirections()[x + y * m_FinalImage->GetWidth()];
-    Renderer::HitPayload payload = TraceRay(ray);
-    if (payload.HitDistance < 0.0f)
-        return glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
-    glm::vec3 lightDirection = glm::normalize(glm::vec3(-1, -1, -1));
-    float lightIntensity = glm::max(glm::dot(payload.WorldNormal, -lightDirection), 0.0f); // == cos(angle)
+    glm::vec3 color(0.0f);
+    float multiplier = 1.0f;
 
-    const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
-    glm::vec3 sphereColor = sphere.Albedo;
-    // sphereColor = normal * 0.5f + 0.5f;
-    sphereColor *= lightIntensity;
-    return glm::vec4(sphereColor, 1.0f);
+    int bounces = 2;
+    for (int i = 0; i < bounces; i++)
+    {
+        Renderer::HitPayload payload = TraceRay(ray);
+        if (payload.HitDistance < 0.0f)
+        {
+            glm::vec3 skyColor(0.0f);
+            color += skyColor * multiplier;
+            break;
+        }
+
+        glm::vec3 lightDirection = glm::normalize(glm::vec3(-1, -1, -1));
+        float lightIntensity = glm::max(glm::dot(payload.WorldNormal, -lightDirection), 0.0f); // == cos(angle)
+
+        const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
+        glm::vec3 sphereColor = sphere.Albedo;
+        // sphereColor = normal * 0.5f + 0.5f;
+        sphereColor *= lightIntensity;
+        color += sphereColor * multiplier;
+
+        multiplier *= 0.5f;
+        ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
+        ray.Direction = glm::reflect(ray.Direction, payload.WorldNormal);
+    }
+
+    return glm::vec4(color, 1.0f);
 }
 
 Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
@@ -113,7 +131,7 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
         // assuming -b is positive, this will give the smaller (i.e. closer) value
         float closestT = (-b - glm::sqrt(discriminant)) / (2.0f * a);
 
-        if (closestT < hitDistance)
+        if (closestT > 0.0f && closestT < hitDistance)
         {
             hitDistance = closestT;
             closestSphere = (int)i;
