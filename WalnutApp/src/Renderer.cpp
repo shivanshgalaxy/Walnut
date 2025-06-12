@@ -19,6 +19,15 @@ namespace Utils
     }
 }
 
+glm::vec3 RandomVec3(float min = -0.5f, float max = 0.5f) {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dist(min, max);
+
+    return glm::vec3(dist(gen), dist(gen), dist(gen));
+}
+
+
 void Renderer::OnResize(uint32_t width, uint32_t height)
 {
     if (m_FinalImage)
@@ -87,7 +96,8 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
         multiplier *= 0.5f;
         ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
         ray.Direction = glm::reflect(ray.Direction,
-            payload.WorldNormal + material.Roughness * Walnut::Random::Vec3(-0.5f, 0.5f));
+            payload.WorldNormal + material.Roughness * RandomVec3());
+
     }
 
     return glm::vec4(color, 1.0f);
