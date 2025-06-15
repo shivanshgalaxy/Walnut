@@ -47,8 +47,8 @@ public:
 
 		{
 			Sphere sphere;
-			sphere.Position = {0.0f, 0.0f, 2.0f};
-			sphere.Radius = 1.0f;
+			sphere.Position = {45.0f, 0.0f, 35.0f};
+			sphere.Radius = 20.0f;
 			sphere.MaterialIndex = 2;
 			m_Scene.Spheres.push_back(sphere);
 		}
