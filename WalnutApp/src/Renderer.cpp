@@ -157,15 +157,15 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
 
     uint32_t seed = x + y * m_FinalImage->GetWidth();
     seed *= m_FrameIndex;
-    int bounces = 5;
+    int bounces = 10;
     for (int i = 0; i < bounces; i++)
     {
         seed += i;
         Renderer::HitPayload payload = TraceRay(ray);
         if (payload.HitDistance < 0.0f)
         {
-            glm::vec3 skyColor(0.4f, 0.6f, 0.8f);
-            // light += skyColor * colorContribution;
+            // glm::vec3 skyColor(0.4f, 0.6f, 0.8f);
+            light += skyColor * colorContribution;
             break;
         }
 
@@ -174,7 +174,7 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
 
         const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
         const Material& material = m_ActiveScene->Materials[sphere.MaterialIndex];
-        light += material.GetEmission();
+        light += material.GetEmission() * colorContribution;
         colorContribution *= material.Albedo;
         ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
         // ray.Direction = glm::reflect(ray.Direction,

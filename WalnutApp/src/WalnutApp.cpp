@@ -28,7 +28,6 @@ public:
 		orangeSphere.EmissionColor = orangeSphere.Albedo;
 		orangeSphere.EmissionPower = 5.0f;
 
-
 		{
 			Sphere sphere;
 			sphere.Position = {0.0f, 0.0f, 0.0f};
@@ -77,6 +76,7 @@ public:
 		ImGui::End();
 
 		ImGui::Begin("Scene");
+		ImGui::ColorEdit3("Sky Color", glm::value_ptr(skyColor));
 		ImGui::Text("Objects");
 		for (int i = 0; i < m_Scene.Spheres.size(); i++)
 		{
@@ -89,6 +89,7 @@ public:
 			ImGui::Separator();
 			ImGui::PopID();
 		}
+
 		ImGui::Text("Materials");
 		for (int i = 0; i < m_Scene.Materials.size(); i++) {
 			ImGui::PushID(i);

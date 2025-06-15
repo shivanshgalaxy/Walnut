@@ -18,6 +18,8 @@ struct Material {
     glm::vec3 GetEmission() const { return EmissionColor * EmissionPower; }
 };
 
+inline glm::vec3 skyColor(0.4f, 0.6f, 0.8f);
+
 struct Sphere
 {
     glm::vec3 Position{0.0f};
