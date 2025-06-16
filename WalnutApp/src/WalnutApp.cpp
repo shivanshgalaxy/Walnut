@@ -76,8 +76,8 @@ public:
 
 			Material& material = m_Scene.Materials[i];
 			ImGui::ColorEdit3("Albedo", glm::value_ptr(material.Albedo));
-			ImGui::DragFloat("Roughness", &material.Roughness, 0.05f, 0.0f, 1.0f);
-			ImGui::DragFloat("Metallic", &material.Metallic, 0.05f, 0.0f, 1.0f);
+			ImGui::DragFloat("Roughness", &material.Roughness, 0.002f, 0.0f, 1.0f);
+			ImGui::DragFloat("Metallic", &material.Metallic, 0.002f, 0.0f, 1.0f);
 			ImGui::Separator();
 
 			ImGui::PopID();
