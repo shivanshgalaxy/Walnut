@@ -104,8 +104,10 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
 
                     glm::vec4 accumulatedColor = m_AccumulationData[x + y * m_FinalImage->GetWidth()];
                     accumulatedColor /= (float)m_FrameIndex;
-
                     accumulatedColor = glm::clamp(accumulatedColor, glm::vec4(0.0f), glm::vec4(1.0f));
+                    accumulatedColor.r = pow(accumulatedColor.r, 1.0f / imageGamma);
+                    accumulatedColor.g = pow(accumulatedColor.g, 1.0f / imageGamma);
+                    accumulatedColor.b = pow(accumulatedColor.b, 1.0f / imageGamma);
                     m_ImageData[x + y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(accumulatedColor);
                 });
             #else
@@ -179,7 +181,11 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
         ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
         // ray.Direction = glm::reflect(ray.Direction,
         //     payload.WorldNormal + material.Roughness * Walnut::Random::Vec3(-0.5, 0.5));
-        ray.Direction = glm::normalize(payload.WorldNormal + Utils::InUnitSphere(seed));
+        if (!material.isMetallic)
+            ray.Direction = glm::normalize(payload.WorldNormal + Utils::InUnitSphere(seed));
+        else
+            ray.Direction = glm::reflect(ray.Direction,
+            glm::normalize(payload.WorldNormal + material.Roughness * Utils::InUnitSphere(seed)));
     }
 
     return glm::vec4(light, 1.0f);

@@ -12,14 +12,14 @@
 struct Material {
     glm::vec3 Albedo{1.0f};
     float Roughness = 1.0f;
-    float Metallic = 0.0f;
+    bool isMetallic = false;
     float EmissionPower = 0.0f;
     glm::vec3 EmissionColor{ 0.0f };
     glm::vec3 GetEmission() const { return EmissionColor * EmissionPower; }
 };
 
-inline glm::vec3 skyColor(0.4f, 0.6f, 0.8f);
-
+inline glm::vec3 skyColor(0.75f, 0.75f, 0.8f);
+inline float imageGamma = 1.2f;
 struct Sphere
 {
     glm::vec3 Position{0.0f};
