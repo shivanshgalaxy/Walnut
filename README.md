@@ -88,7 +88,7 @@ A real-time ray tracing renderer and scene editor built using the Walnut framewo
     - Lambertian diffuse with (currently) uniform hemisphere sampling
     - Emissive surfaces contribute light
     - Color accumulation and progressive refinement
-4. **Output**: RGBA image with tone mapping and clamping
+4. **Output**: RGBA image
 
 ---
 
