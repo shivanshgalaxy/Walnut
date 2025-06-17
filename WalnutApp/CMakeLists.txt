@@ -5,6 +5,12 @@ add_executable(WalnutApp ${WalnutApp_SRC}
         src/Scene.h)
 target_include_directories(WalnutApp PRIVATE src)
 target_link_libraries(WalnutApp PRIVATE Walnut)
+if(UNIX AND NOT APPLE)
+    find_package(TBB REQUIRED)
+    target_link_libraries(WalnutApp PRIVATE TBB::tbb)
+endif()
+
+
 
 # setup internal project compile definition
 if(WIN32)
