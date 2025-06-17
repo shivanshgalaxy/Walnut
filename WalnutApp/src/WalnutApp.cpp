@@ -26,7 +26,7 @@ public:
 		orangeSphere.Roughness = 0.35f;
 		orangeSphere.Albedo = {0.8f, 0.2f, 0.1f};
 		orangeSphere.EmissionColor = orangeSphere.Albedo;
-		orangeSphere.EmissionPower = 5.0f;
+		orangeSphere.EmissionPower = 15.0f;
 
 		{
 			Sphere sphere;
